@@ -121,6 +121,9 @@ class OrganizadorExtratosGUI:
         self.processing = False
         self.processing_log = []
         
+        # Configuração de intervalo entre arquivos (em segundos)
+        self.processing_interval = 10  # Padrão: 10 segundos
+        
         # Arquivos de configuração no diretório de dados do app
         self.checkpoint_file = os.path.join(self.app_data_dir, "processing_checkpoint.json")
         self.api_keys_file = os.path.join(self.app_data_dir, "api_keys.json")
@@ -335,6 +338,35 @@ class OrganizadorExtratosGUI:
         
         Entry(dir_section, textvariable=self.output_directory, 
               font=("Arial", 10)).pack(fill=X, padx=10, pady=(5, 10))
+        
+        # Seção Configurações de Processamento
+        processing_section = LabelFrame(config_frame, text="⚙️ Configurações de Processamento", 
+                                       font=("Arial", 12, "bold"), bg=self.colors['background'])
+        processing_section.pack(fill=X, padx=20, pady=10)
+        
+        # Intervalo entre arquivos
+        interval_frame = Frame(processing_section, bg=self.colors['background'])
+        interval_frame.pack(fill=X, padx=10, pady=10)
+        
+        Label(interval_frame, text="Intervalo entre arquivos (segundos):", 
+              bg=self.colors['background'], font=("Arial", 10)).pack(side=LEFT)
+        
+        # Spinbox para selecionar intervalo
+        self.interval_var = IntVar(value=self.processing_interval)
+        interval_spinbox = Spinbox(interval_frame, from_=1, to=60, width=5, 
+                                  textvariable=self.interval_var, font=("Arial", 10),
+                                  command=self.update_interval)
+        interval_spinbox.pack(side=LEFT, padx=(10, 5))
+        
+        Label(interval_frame, text="(1-60 segundos)", 
+              bg=self.colors['background'], font=("Arial", 9), 
+              fg=self.colors['text']).pack(side=LEFT)
+        
+        # Descrição do intervalo
+        Label(processing_section, 
+              text="💡 Intervalo recomendado: 10 segundos para evitar limite de taxa da API", 
+              bg=self.colors['background'], font=("Arial", 9), 
+              fg='#666666').pack(anchor=W, padx=10, pady=(0, 10))
         
         # Seção Arquivos Encontrados
         files_section = LabelFrame(config_frame, text="📄 Arquivos Encontrados", 
@@ -848,10 +880,10 @@ class OrganizadorExtratosGUI:
                     # Salva checkpoint mesmo com erro
                     self.save_checkpoint(files, i + 1, self.stats)
                 
-                # Pausa de 10 segundos entre arquivos
+                # Pausa configurável entre arquivos
                 if i < len(files) - 1 and self.processing:
-                    self.log_message("⏱️ Aguardando 10 segundos antes do próximo arquivo...", "INFO")
-                    for second in range(10):
+                    self.log_message(f"⏱️ Aguardando {self.processing_interval} segundos antes do próximo arquivo...", "INFO")
+                    for second in range(self.processing_interval):
                         if not self.processing:
                             break
                         time.sleep(1)
@@ -1377,6 +1409,22 @@ class OrganizadorExtratosGUI:
         else:
             self.api_status_label.config(text="Nenhuma chave configurada")
             
+    def update_interval(self):
+        """Atualiza o intervalo de processamento e salva nas preferências"""
+        try:
+            new_interval = self.interval_var.get()
+            if 1 <= new_interval <= 60:
+                self.processing_interval = new_interval
+                self.save_preferences()
+                self.log_message(f"⚙️ Intervalo atualizado para {new_interval} segundos", "INFO")
+            else:
+                # Reverte para valor válido
+                self.interval_var.set(self.processing_interval)
+                messagebox.showwarning("Valor Inválido", "O intervalo deve estar entre 1 e 60 segundos.")
+        except Exception as e:
+            self.interval_var.set(self.processing_interval)
+            messagebox.showerror("Erro", f"Erro ao atualizar intervalo: {e}")
+            
     def load_preferences(self):
         """Carrega preferências do usuário"""
         try:
@@ -1384,15 +1432,23 @@ class OrganizadorExtratosGUI:
                 with open(self.preferences_file, 'r', encoding='utf-8') as f:
                     preferences = json.load(f)
                     self.current_theme = preferences.get('theme', 'light')
+                    self.processing_interval = preferences.get('processing_interval', 10)
+                    # Atualiza o spinbox se já foi criado
+                    if hasattr(self, 'interval_var'):
+                        self.interval_var.set(self.processing_interval)
         except Exception as e:
             print(f"Erro ao carregar preferências: {e}")
             self.current_theme = 'light'
+            self.processing_interval = 10
+            if hasattr(self, 'interval_var'):
+                self.interval_var.set(self.processing_interval)
             
     def save_preferences(self):
         """Salva preferências do usuário"""
         try:
             preferences = {
-                'theme': self.current_theme
+                'theme': self.current_theme,
+                'processing_interval': self.processing_interval
             }
             with open(self.preferences_file, 'w', encoding='utf-8') as f:
                 json.dump(preferences, f, indent=2)
