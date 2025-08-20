@@ -76,8 +76,12 @@ class OrganizadorExtratosGUI:
         self.root = root
         self.setup_window()
         self.setup_variables()
+        self.load_preferences()
         self.setup_ui()
+        self.apply_theme()
         self.check_dependencies()
+        self.load_api_keys()
+        self.check_for_checkpoint()
         
     def setup_window(self):
         """Configura a janela principal"""
@@ -120,6 +124,44 @@ class OrganizadorExtratosGUI:
         # Arquivos de configuração no diretório de dados do app
         self.checkpoint_file = os.path.join(self.app_data_dir, "processing_checkpoint.json")
         self.api_keys_file = os.path.join(self.app_data_dir, "api_keys.json")
+        self.preferences_file = os.path.join(self.app_data_dir, "preferences.json")
+        
+        # Sistema de temas
+        self.current_theme = "light"  # light ou dark
+        self.themes = {
+            "light": {
+                "bg": "#ffffff",
+                "fg": "#000000",
+                "select_bg": "#0078d4",
+                "select_fg": "#ffffff",
+                "entry_bg": "#ffffff",
+                "entry_fg": "#000000",
+                "button_bg": "#f0f0f0",
+                "button_fg": "#000000",
+                "frame_bg": "#f8f9fa",
+                "text_bg": "#ffffff",
+                "text_fg": "#000000",
+                "success_fg": "#28a745",
+                "error_fg": "#dc3545",
+                "warning_fg": "#ffc107"
+            },
+            "dark": {
+                "bg": "#2b2b2b",
+                "fg": "#ffffff",
+                "select_bg": "#0078d4",
+                "select_fg": "#ffffff",
+                "entry_bg": "#3c3c3c",
+                "entry_fg": "#ffffff",
+                "button_bg": "#404040",
+                "button_fg": "#ffffff",
+                "frame_bg": "#353535",
+                "text_bg": "#2b2b2b",
+                "text_fg": "#ffffff",
+                "success_fg": "#28a745",
+                "error_fg": "#dc3545",
+                "warning_fg": "#ffc107"
+            }
+        }
         
         self.stats = {
             'total_files': 0,
@@ -138,20 +180,38 @@ class OrganizadorExtratosGUI:
         main_frame = Frame(self.root, bg=self.colors['background'])
         main_frame.pack(fill=BOTH, expand=True, padx=10, pady=10)
         
-        # Título
+        # Título e controles do cabeçalho
         title_frame = Frame(main_frame, bg=self.colors['background'])
         title_frame.pack(fill=X, pady=(0, 20))
         
+        # Frame esquerdo para título
+        title_left = Frame(title_frame, bg=self.colors['background'])
+        title_left.pack(side=LEFT, fill=X, expand=True)
+        
         title_font = Font(family="Arial", size=18, weight="bold")
-        title_label = Label(title_frame, text="🏦 Organizador de Extratos Bancários", 
+        title_label = Label(title_left, text="🏦 Organizador de Extratos Bancários", 
                            font=title_font, bg=self.colors['background'], 
                            fg=self.colors['primary'])
-        title_label.pack()
+        title_label.pack(anchor=W)
         
-        subtitle_label = Label(title_frame, text="Powered by Google Gemini AI", 
+        subtitle_label = Label(title_left, text="Powered by Google Gemini AI", 
                               font=("Arial", 10), bg=self.colors['background'], 
                               fg=self.colors['text'])
-        subtitle_label.pack()
+        subtitle_label.pack(anchor=W)
+        
+        # Frame direito para controles de tema
+        theme_frame = Frame(title_frame, bg=self.colors['background'])
+        theme_frame.pack(side=RIGHT)
+        
+        theme_label = Label(theme_frame, text="Tema:", 
+                           bg=self.colors['background'], fg=self.colors['text'])
+        theme_label.pack(side=LEFT, padx=(0, 5))
+        
+        theme_icon = "🌙" if self.current_theme == "light" else "☀️"
+        self.theme_button = Button(theme_frame, text=theme_icon, 
+                                  command=self.toggle_theme_and_update,
+                                  font=Font(size=14), width=3, height=1)
+        self.theme_button.pack(side=LEFT)
         
         # Notebook para abas
         self.notebook = ttk.Notebook(main_frame)
@@ -163,14 +223,14 @@ class OrganizadorExtratosGUI:
         # Aba 2: Processamento
         self.setup_processing_tab()
         
-        # Verifica se há checkpoint para retomar
-        self.check_for_checkpoint()
-        
         # Aba 3: Resultados
         self.setup_results_tab()
         
         # Frame de status na parte inferior
         self.setup_status_frame(main_frame)
+        
+        # Verifica se há checkpoint para retomar (após criar todos os componentes)
+        self.check_for_checkpoint()
         
     def setup_config_tab(self):
         """Configura a aba de configuração"""
@@ -1303,12 +1363,12 @@ class OrganizadorExtratosGUI:
             self.api_keys = []
             
     def update_keys_display(self):
-        """Atualiza a exibição da lista de chaves"""
+        """Atualiza a exibição das chaves na listbox"""
         self.keys_listbox.delete(0, END)
         
         for i, key in enumerate(self.api_keys):
             # Mostra apenas os primeiros e últimos caracteres da chave
-            masked_key = f"Chave {i + 1}: {key[:8]}...{key[-8:]}" if len(key) > 16 else f"Chave {i + 1}: {key}"
+            masked_key = f"Chave {i+1}: {key[:8]}...{key[-8:]}"
             self.keys_listbox.insert(END, masked_key)
             
         # Atualiza status
@@ -1316,6 +1376,87 @@ class OrganizadorExtratosGUI:
             self.api_status_label.config(text=f"{len(self.api_keys)} chave(s) configurada(s)")
         else:
             self.api_status_label.config(text="Nenhuma chave configurada")
+            
+    def load_preferences(self):
+        """Carrega preferências do usuário"""
+        try:
+            if os.path.exists(self.preferences_file):
+                with open(self.preferences_file, 'r', encoding='utf-8') as f:
+                    preferences = json.load(f)
+                    self.current_theme = preferences.get('theme', 'light')
+        except Exception as e:
+            print(f"Erro ao carregar preferências: {e}")
+            self.current_theme = 'light'
+            
+    def save_preferences(self):
+        """Salva preferências do usuário"""
+        try:
+            preferences = {
+                'theme': self.current_theme
+            }
+            with open(self.preferences_file, 'w', encoding='utf-8') as f:
+                json.dump(preferences, f, indent=2)
+        except Exception as e:
+            print(f"Erro ao salvar preferências: {e}")
+            
+    def toggle_theme(self):
+        """Alterna entre tema claro e escuro"""
+        self.current_theme = 'dark' if self.current_theme == 'light' else 'light'
+        self.apply_theme()
+        self.save_preferences()
+        
+    def toggle_theme_and_update(self):
+        """Alterna tema e atualiza o ícone do botão"""
+        self.toggle_theme()
+        # Atualiza o ícone do botão
+        theme_icon = "🌙" if self.current_theme == "light" else "☀️"
+        if hasattr(self, 'theme_button'):
+            self.theme_button.config(text=theme_icon)
+        
+    def apply_theme(self):
+        """Aplica o tema atual a todos os componentes"""
+        theme = self.themes[self.current_theme]
+        
+        # Aplica tema na janela principal
+        self.root.configure(bg=theme['bg'])
+        
+        # Aplica tema no notebook
+        style = ttk.Style()
+        style.theme_use('clam')
+        
+        # Configura estilos do notebook
+        style.configure('TNotebook', background=theme['bg'])
+        style.configure('TNotebook.Tab', background=theme['button_bg'], foreground=theme['button_fg'])
+        style.map('TNotebook.Tab', background=[('selected', theme['select_bg'])], foreground=[('selected', theme['select_fg'])])
+        
+        # Aplica tema em todos os widgets filhos
+        self._apply_theme_recursive(self.root, theme)
+        
+    def _apply_theme_recursive(self, widget, theme):
+        """Aplica tema recursivamente em todos os widgets"""
+        widget_class = widget.winfo_class()
+        
+        try:
+            if widget_class == 'Frame':
+                widget.configure(bg=theme['frame_bg'])
+            elif widget_class == 'Label':
+                widget.configure(bg=theme['bg'], fg=theme['fg'])
+            elif widget_class == 'Button':
+                widget.configure(bg=theme['button_bg'], fg=theme['button_fg'], activebackground=theme['select_bg'])
+            elif widget_class == 'Entry':
+                widget.configure(bg=theme['entry_bg'], fg=theme['entry_fg'], insertbackground=theme['fg'])
+            elif widget_class == 'Text':
+                widget.configure(bg=theme['text_bg'], fg=theme['text_fg'], insertbackground=theme['fg'])
+            elif widget_class == 'Listbox':
+                widget.configure(bg=theme['entry_bg'], fg=theme['entry_fg'], selectbackground=theme['select_bg'])
+            elif widget_class == 'Scrollbar':
+                widget.configure(bg=theme['button_bg'], troughcolor=theme['bg'])
+        except:
+            pass  # Ignora erros de configuração
+            
+        # Aplica recursivamente aos filhos
+        for child in widget.winfo_children():
+            self._apply_theme_recursive(child, theme)
         
     def save_checkpoint(self, files, current_index, stats):
         """Salva o checkpoint do processamento"""
