@@ -99,15 +99,6 @@ class OrganizadorExtratosGUI:
         self.style = ttk.Style()
         self.style.theme_use('clam')
         
-        # Cores personalizadas
-        self.colors = {
-            'primary': '#2E86AB',
-            'secondary': '#A23B72', 
-            'success': '#F18F01',
-            'background': '#F5F5F5',
-            'text': '#2C3E50'
-        }
-        
     def setup_variables(self):
         """Inicializa variáveis"""
         self.api_keys = []  # Lista de chaves API
@@ -149,24 +140,24 @@ class OrganizadorExtratosGUI:
                 "warning_fg": "#ffc107"
             },
             "dark": {
-                "bg": "#1e1e1e",              # Fundo principal mais escuro
-                "fg": "#e0e0e0",              # Texto principal mais suave
-                "select_bg": "#0d7377",        # Azul-verde para seleções
-                "select_fg": "#ffffff",        # Texto em seleções
-                "entry_bg": "#2d2d2d",         # Campos de entrada mais claros
-                "entry_fg": "#f0f0f0",         # Texto em campos mais claro
-                "button_bg": "#3a3a3a",        # Botões com contraste adequado
-                "button_fg": "#e0e0e0",        # Texto de botões suave
-                "frame_bg": "#252525",         # Frames ligeiramente mais claros
-                "text_bg": "#1a1a1a",          # Áreas de texto mais escuras
-                "text_fg": "#d0d0d0",          # Texto em áreas mais legível
-                "success_fg": "#4caf50",       # Verde mais vibrante
-                "error_fg": "#f44336",         # Vermelho mais vibrante
-                "warning_fg": "#ff9800",       # Laranja mais vibrante
-                "accent": "#14a085",           # Cor de destaque principal
-                "secondary": "#424242",        # Cor secundária
+                "bg": "#1a1a1a",              # Fundo principal escuro
+                "fg": "#e8e8e8",              # Texto principal claro
+                "select_bg": "#0078d4",        # Azul Microsoft para seleções
+                "select_fg": "#ffffff",        # Texto em seleções branco
+                "entry_bg": "#2d2d2d",         # Campos de entrada cinza escuro
+                "entry_fg": "#ffffff",         # Texto em campos branco
+                "button_bg": "#404040",        # Botões cinza médio
+                "button_fg": "#ffffff",        # Texto de botões branco
+                "frame_bg": "#202020",         # Frames ligeiramente mais claros que o fundo
+                "text_bg": "#1e1e1e",          # Áreas de texto escuras
+                "text_fg": "#e8e8e8",          # Texto em áreas claro
+                "success_fg": "#00d084",       # Verde vibrante
+                "error_fg": "#ff6b6b",         # Vermelho suave
+                "warning_fg": "#ffa726",       # Laranja suave
+                "accent": "#0078d4",           # Azul Microsoft como destaque
+                "secondary": "#505050",        # Cinza médio para elementos secundários
                 "border": "#404040",           # Bordas sutis
-                "hover": "#4a4a4a"             # Estado hover
+                "hover": "#505050"             # Estado hover mais claro
             }
         }
         
@@ -177,6 +168,9 @@ class OrganizadorExtratosGUI:
             'by_bank': {},
             'by_month': {}
         }
+        
+        # Inicializa cores baseadas no tema atual
+        self.update_colors()
         
         # Carrega chaves salvas
         self.load_api_keys()
@@ -482,7 +476,11 @@ class OrganizadorExtratosGUI:
         
         Button(actions_buttons, text="📂 Limpar Checkpoint", 
                command=self.clear_checkpoint,
-               bg=self.colors['secondary'], fg='white', font=("Arial", 10)).pack(side=LEFT)
+               bg=self.colors['secondary'], fg='white', font=("Arial", 10)).pack(side=LEFT, padx=(0, 10))
+        
+        Button(actions_buttons, text="👁️ Ver Checkpoint",
+               command=self.view_checkpoint,
+               bg=self.colors['primary'], fg='white', font=("Arial", 10)).pack(side=LEFT)
         
     def setup_status_frame(self, parent):
         """Configura a barra de status"""
@@ -1484,9 +1482,23 @@ class OrganizadorExtratosGUI:
         if hasattr(self, 'theme_button'):
             self.theme_button.config(text=theme_icon)
         
+    def update_colors(self):
+        """Atualiza as cores baseadas no tema atual"""
+        theme = self.themes[self.current_theme]
+        self.colors = {
+            'primary': theme.get('accent', theme['select_bg']),
+            'secondary': theme.get('secondary', theme['button_bg']), 
+            'success': theme.get('success_fg', '#28a745'),
+            'background': theme['bg'],
+            'text': theme['fg']
+        }
+    
     def apply_theme(self):
         """Aplica o tema atual a todos os componentes"""
         theme = self.themes[self.current_theme]
+        
+        # Atualiza as cores baseadas no tema
+        self.update_colors()
         
         # Aplica tema na janela principal
         self.root.configure(bg=theme['bg'])
@@ -1532,25 +1544,33 @@ class OrganizadorExtratosGUI:
         
         try:
             if widget_class == 'Frame':
-                widget.configure(bg=theme['frame_bg'])
+                # Verifica se é um frame especial (como status_frame)
+                if hasattr(widget, 'master') and hasattr(widget.master, 'winfo_name'):
+                    widget.configure(bg=theme['frame_bg'])
+                else:
+                    widget.configure(bg=theme['frame_bg'])
             elif widget_class == 'Label':
                 # Verifica se é um label especial (título, status, etc.)
                 text = widget.cget('text') if hasattr(widget, 'cget') else ''
                 if '🏦' in text or 'Organizador' in text:
                     # Título principal com cor de destaque
                     widget.configure(bg=theme['bg'], fg=theme.get('accent', theme['fg']))
+                elif 'Status:' in text or 'Progresso:' in text:
+                    # Labels de status mantêm fundo do frame pai
+                    widget.configure(bg=theme['frame_bg'], fg=theme['fg'])
                 else:
-                    widget.configure(bg=theme['bg'], fg=theme['fg'])
+                    widget.configure(bg=theme['frame_bg'], fg=theme['fg'])
             elif widget_class == 'Button':
                 # Botões com melhor contraste e hover
                 widget.configure(
                     bg=theme['button_bg'], 
                     fg=theme['button_fg'], 
                     activebackground=theme.get('hover', theme['select_bg']),
-                    activeforeground=theme['select_fg'],
+                    activeforeground=theme['button_fg'],
                     relief='flat',
                     borderwidth=1,
-                    highlightthickness=0
+                    highlightthickness=0,
+                    highlightbackground=theme.get('border', theme['button_bg'])
                 )
             elif widget_class == 'Entry':
                 widget.configure(
@@ -1559,8 +1579,11 @@ class OrganizadorExtratosGUI:
                     insertbackground=theme['entry_fg'],
                     selectbackground=theme['select_bg'],
                     selectforeground=theme['select_fg'],
-                    relief='flat',
-                    borderwidth=1
+                    relief='solid',
+                    borderwidth=1,
+                    highlightthickness=1,
+                    highlightcolor=theme.get('accent', theme['select_bg']),
+                    highlightbackground=theme.get('border', theme['entry_bg'])
                 )
             elif widget_class == 'Text':
                 widget.configure(
@@ -1569,8 +1592,11 @@ class OrganizadorExtratosGUI:
                     insertbackground=theme['text_fg'],
                     selectbackground=theme['select_bg'],
                     selectforeground=theme['select_fg'],
-                    relief='flat',
-                    borderwidth=1
+                    relief='solid',
+                    borderwidth=1,
+                    highlightthickness=1,
+                    highlightcolor=theme.get('accent', theme['select_bg']),
+                    highlightbackground=theme.get('border', theme['text_bg'])
                 )
             elif widget_class == 'Listbox':
                 widget.configure(
@@ -1578,15 +1604,19 @@ class OrganizadorExtratosGUI:
                     fg=theme['entry_fg'], 
                     selectbackground=theme['select_bg'],
                     selectforeground=theme['select_fg'],
-                    relief='flat',
-                    borderwidth=1
+                    relief='solid',
+                    borderwidth=1,
+                    highlightthickness=1,
+                    highlightcolor=theme.get('accent', theme['select_bg']),
+                    highlightbackground=theme.get('border', theme['entry_bg'])
                 )
             elif widget_class == 'Scrollbar':
                 widget.configure(
                     bg=theme['button_bg'], 
-                    troughcolor=theme['bg'],
+                    troughcolor=theme['frame_bg'],
                     activebackground=theme.get('hover', theme['button_bg']),
-                    relief='flat'
+                    relief='flat',
+                    borderwidth=0
                 )
             elif widget_class == 'Spinbox':
                 widget.configure(
@@ -1596,11 +1626,14 @@ class OrganizadorExtratosGUI:
                     selectbackground=theme['select_bg'],
                     selectforeground=theme['select_fg'],
                     buttonbackground=theme['button_bg'],
-                    relief='flat',
-                    borderwidth=1
+                    relief='solid',
+                    borderwidth=1,
+                    highlightthickness=1,
+                    highlightcolor=theme.get('accent', theme['select_bg'])
                 )
-        except:
-            pass  # Ignora erros de configuração
+        except Exception as e:
+            # Ignora erros de configuração mas pode logar para debug
+            pass
             
         # Aplica recursivamente aos filhos
         for child in widget.winfo_children():
@@ -1642,6 +1675,135 @@ class OrganizadorExtratosGUI:
         checkpoint_data = self.load_checkpoint()
         return checkpoint_data is not None and checkpoint_data.get('current_index', 0) > 0
         
+    def view_checkpoint(self):
+        """Exibe os detalhes do checkpoint atual"""
+        checkpoint_data = self.load_checkpoint()
+        
+        if not checkpoint_data:
+            messagebox.showinfo("Checkpoint", "Nenhum checkpoint encontrado!")
+            return
+        
+        # Cria janela para exibir detalhes
+        checkpoint_window = Toplevel(self.root)
+        checkpoint_window.title("📋 Detalhes do Checkpoint")
+        checkpoint_window.geometry("600x500")
+        checkpoint_window.resizable(True, True)
+        
+        # Aplica tema à janela
+        theme = self.themes[self.current_theme]
+        checkpoint_window.configure(bg=theme['bg'])
+        
+        # Frame principal com scroll
+        main_frame = Frame(checkpoint_window, bg=theme['bg'])
+        main_frame.pack(fill=BOTH, expand=True, padx=10, pady=10)
+        
+        # Título
+        title_label = Label(main_frame, text="📋 Informações do Checkpoint",
+                           font=("Arial", 14, "bold"), bg=theme['bg'], fg=theme['accent'])
+        title_label.pack(pady=(0, 15))
+        
+        # Área de texto com scroll
+        text_frame = Frame(main_frame, bg=theme['bg'])
+        text_frame.pack(fill=BOTH, expand=True)
+        
+        text_widget = scrolledtext.ScrolledText(text_frame, 
+                                               bg=theme['text_bg'], 
+                                               fg=theme['text_fg'],
+                                               font=("Consolas", 10),
+                                               wrap=WORD)
+        text_widget.pack(fill=BOTH, expand=True)
+        
+        # Formata e exibe os dados
+        info_text = self._format_checkpoint_info(checkpoint_data)
+        text_widget.insert(END, info_text)
+        text_widget.config(state=DISABLED)
+        
+        # Botão fechar
+        close_button = Button(main_frame, text="✖️ Fechar",
+                             command=checkpoint_window.destroy,
+                             bg=theme['button_bg'], fg=theme['button_fg'],
+                             font=("Arial", 10))
+        close_button.pack(pady=(10, 0))
+        
+        # Centraliza a janela
+        checkpoint_window.transient(self.root)
+        checkpoint_window.grab_set()
+        
+    def _format_checkpoint_info(self, checkpoint_data):
+        """Formata as informações do checkpoint para exibição"""
+        timestamp = checkpoint_data.get('timestamp', 'Desconhecido')
+        try:
+            # Converte timestamp para formato legível
+            dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            formatted_time = dt.strftime('%d/%m/%Y às %H:%M:%S')
+        except:
+            formatted_time = timestamp
+        
+        current_index = checkpoint_data.get('current_index', 0)
+        total_files = checkpoint_data.get('total_files', 0)
+        base_dir = checkpoint_data.get('base_directory', 'N/A')
+        output_dir = checkpoint_data.get('output_directory', 'N/A')
+        stats = checkpoint_data.get('stats', {})
+        files = checkpoint_data.get('files', [])
+        api_keys_count = checkpoint_data.get('api_keys_count', 0)
+        current_api_index = checkpoint_data.get('current_api_index', 0)
+        
+        info = f"""🕒 INFORMAÇÕES GERAIS
+{'='*50}
+📅 Data/Hora: {formatted_time}
+📁 Diretório Base: {base_dir}
+📂 Diretório Saída: {output_dir}
+🔑 Chaves API: {api_keys_count} (atual: {current_api_index + 1})
+
+📊 PROGRESSO
+{'='*50}
+📄 Arquivo Atual: {current_index + 1} de {total_files}
+📈 Progresso: {(current_index/total_files*100):.1f}% concluído
+⏳ Arquivos Restantes: {total_files - current_index}
+
+📈 ESTATÍSTICAS
+{'='*50}
+✅ Sucessos: {stats.get('success', 0)}
+❌ Erros: {stats.get('errors', 0)}
+📊 Total Processados: {stats.get('success', 0) + stats.get('errors', 0)}
+
+🏦 POR BANCO
+{'='*50}
+"""
+        
+        # Adiciona estatísticas por banco
+        by_bank = stats.get('by_bank', {})
+        if by_bank:
+            for bank, count in by_bank.items():
+                info += f"• {bank}: {count} arquivo(s)\n"
+        else:
+            info += "Nenhum dado por banco ainda\n"
+        
+        info += f"\n📅 POR MÊS\n{'='*50}\n"
+        
+        # Adiciona estatísticas por mês
+        by_month = stats.get('by_month', {})
+        if by_month:
+            for month, count in sorted(by_month.items()):
+                info += f"• {month}: {count} arquivo(s)\n"
+        else:
+            info += "Nenhum dado por mês ainda\n"
+        
+        info += f"\n📋 ARQUIVOS A PROCESSAR\n{'='*50}\n"
+        
+        # Lista próximos arquivos
+        remaining_files = files[current_index:current_index+10]  # Mostra próximos 10
+        for i, file_path in enumerate(remaining_files):
+            status = "➡️ PRÓXIMO" if i == 0 else "⏳ PENDENTE"
+            file_name = os.path.basename(file_path)
+            info += f"{status} {file_name}\n"
+        
+        if len(files) > current_index + 10:
+            remaining = len(files) - current_index - 10
+            info += f"... e mais {remaining} arquivo(s)\n"
+        
+        return info
+    
     def clear_checkpoint(self):
         """Remove o arquivo de checkpoint"""
         try:
