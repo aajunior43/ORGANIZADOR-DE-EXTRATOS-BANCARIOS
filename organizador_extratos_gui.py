@@ -1071,7 +1071,12 @@ class OrganizadorExtratosGUI:
         tipo_conta = analysis_result['tipo_conta'].upper()
         file_type = analysis_result.get('file_type', 'PDF')
         
-        folder_path = os.path.join(output_base, ano, mes, banco, tipo_conta, file_type)
+        # Para investimento, não cria subpasta OFX pois todos OFX são de conta corrente
+        if tipo_conta == 'INVESTIMENTO' and file_type == 'OFX':
+            folder_path = os.path.join(output_base, ano, mes, banco, 'CORRENTE', file_type)
+        else:
+            folder_path = os.path.join(output_base, ano, mes, banco, tipo_conta, file_type)
+            
         os.makedirs(folder_path, exist_ok=True)
         return folder_path
         
