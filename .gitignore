@@ -1,0 +1,81 @@
+# Arquivos de configuração local
+api_keys.json
+processing_checkpoint.json
+
+# Pastas de extratos (dados pessoais)
+ABRIL/
+EXT CAIXA ABRIL/
+EXT CAIXA MAIO/
+EXT CAIXA MARÇO/
+EXTRATOS MAIO CONCILIAÇÃO/
+extratos/
+EXTRATOS_ORGANIZADOS/
+
+# Arquivos temporários do Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+PIPFILE.lock
+
+# Ambientes virtuais
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Arquivos temporários
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Arquivos de teste
+test_*.py
+*_test.py
+tests/
+
+# Documentos pessoais (PDFs e OFX)
+*.pdf
+*.ofx
+
+# Arquivos de build do PyInstaller
+*.spec
+build/
+dist/
+Distribuicao/

@@ -1,0 +1,22 @@
+# Dependências para o Organizador de Extratos Bancários GUI
+# Execute: pip install -r requirements.txt
+
+# === DEPENDÊNCIAS PRINCIPAIS ===
+# API do Google Gemini para análise de IA
+google-generativeai>=0.3.0
+
+# Processamento de arquivos PDF
+PyPDF2>=3.0.0
+
+# === DEPENDÊNCIAS PARA BUILD ===
+# Para criar executável standalone
+pyinstaller>=5.0.0
+
+# === DEPENDÊNCIAS OPCIONAIS ===
+# Interface gráfica alternativa para build
+# auto-py-to-exe>=2.0.0
+
+# === BIBLIOTECAS BUILT-IN (não precisam instalação) ===
+# tkinter - Interface gráfica (built-in)
+# os, json, shutil, datetime, re, time, threading - Utilitários (built-in)
+# pathlib - Manipulação de caminhos (built-in Python 3.4+)
