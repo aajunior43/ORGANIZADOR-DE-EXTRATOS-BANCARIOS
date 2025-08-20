@@ -149,20 +149,24 @@ class OrganizadorExtratosGUI:
                 "warning_fg": "#ffc107"
             },
             "dark": {
-                "bg": "#2b2b2b",
-                "fg": "#ffffff",
-                "select_bg": "#0078d4",
-                "select_fg": "#ffffff",
-                "entry_bg": "#3c3c3c",
-                "entry_fg": "#ffffff",
-                "button_bg": "#404040",
-                "button_fg": "#ffffff",
-                "frame_bg": "#353535",
-                "text_bg": "#2b2b2b",
-                "text_fg": "#ffffff",
-                "success_fg": "#28a745",
-                "error_fg": "#dc3545",
-                "warning_fg": "#ffc107"
+                "bg": "#1e1e1e",              # Fundo principal mais escuro
+                "fg": "#e0e0e0",              # Texto principal mais suave
+                "select_bg": "#0d7377",        # Azul-verde para seleções
+                "select_fg": "#ffffff",        # Texto em seleções
+                "entry_bg": "#2d2d2d",         # Campos de entrada mais claros
+                "entry_fg": "#f0f0f0",         # Texto em campos mais claro
+                "button_bg": "#3a3a3a",        # Botões com contraste adequado
+                "button_fg": "#e0e0e0",        # Texto de botões suave
+                "frame_bg": "#252525",         # Frames ligeiramente mais claros
+                "text_bg": "#1a1a1a",          # Áreas de texto mais escuras
+                "text_fg": "#d0d0d0",          # Texto em áreas mais legível
+                "success_fg": "#4caf50",       # Verde mais vibrante
+                "error_fg": "#f44336",         # Vermelho mais vibrante
+                "warning_fg": "#ff9800",       # Laranja mais vibrante
+                "accent": "#14a085",           # Cor de destaque principal
+                "secondary": "#424242",        # Cor secundária
+                "border": "#404040",           # Bordas sutis
+                "hover": "#4a4a4a"             # Estado hover
             }
         }
         
@@ -712,13 +716,24 @@ class OrganizadorExtratosGUI:
         """Adiciona mensagem ao log"""
         timestamp = datetime.now().strftime("%H:%M:%S")
         
-        # Cores por nível
-        colors = {
-            "INFO": "#ffffff",
-            "SUCCESS": "#90EE90", 
-            "WARNING": "#FFD700",
-            "ERROR": "#FF6B6B"
-        }
+        # Usa cores do tema atual
+        theme = self.themes[self.current_theme]
+        
+        # Cores por nível com base no tema
+        if self.current_theme == "dark":
+            colors = {
+                "INFO": theme['text_fg'],
+                "SUCCESS": theme['success_fg'], 
+                "WARNING": theme['warning_fg'],
+                "ERROR": theme['error_fg']
+            }
+        else:
+            colors = {
+                "INFO": "#333333",
+                "SUCCESS": "#2e7d32", 
+                "WARNING": "#f57c00",
+                "ERROR": "#c62828"
+            }
         
         self.log_text.config(state=NORMAL)
         self.log_text.insert(END, f"[{timestamp}] {message}\n")
@@ -729,7 +744,7 @@ class OrganizadorExtratosGUI:
         
         tag_name = f"level_{level}_{timestamp}"
         self.log_text.tag_add(tag_name, line_start, line_end)
-        self.log_text.tag_config(tag_name, foreground=colors.get(level, "#ffffff"))
+        self.log_text.tag_config(tag_name, foreground=colors.get(level, theme['text_fg']))
         
         self.log_text.config(state=DISABLED)
         self.log_text.see(END)
@@ -1476,14 +1491,37 @@ class OrganizadorExtratosGUI:
         # Aplica tema na janela principal
         self.root.configure(bg=theme['bg'])
         
-        # Aplica tema no notebook
+        # Aplica tema no notebook com melhor estilização
         style = ttk.Style()
         style.theme_use('clam')
         
-        # Configura estilos do notebook
-        style.configure('TNotebook', background=theme['bg'])
-        style.configure('TNotebook.Tab', background=theme['button_bg'], foreground=theme['button_fg'])
-        style.map('TNotebook.Tab', background=[('selected', theme['select_bg'])], foreground=[('selected', theme['select_fg'])])
+        # Configura estilos do notebook com cores aprimoradas
+        style.configure('TNotebook', 
+                       background=theme['bg'],
+                       borderwidth=0,
+                       tabmargins=[2, 5, 2, 0])
+        
+        style.configure('TNotebook.Tab', 
+                       background=theme['button_bg'], 
+                       foreground=theme['button_fg'],
+                       padding=[12, 8],
+                       borderwidth=1,
+                       focuscolor='none')
+        
+        style.map('TNotebook.Tab', 
+                 background=[('selected', theme.get('accent', theme['select_bg'])),
+                           ('active', theme.get('hover', theme['button_bg']))],
+                 foreground=[('selected', theme['select_fg']),
+                           ('active', theme['button_fg'])],
+                 borderwidth=[('selected', 2), ('!selected', 1)])
+        
+        # Configura progressbar se existir
+        style.configure('TProgressbar',
+                       background=theme.get('accent', theme['select_bg']),
+                       troughcolor=theme['entry_bg'],
+                       borderwidth=0,
+                       lightcolor=theme.get('accent', theme['select_bg']),
+                       darkcolor=theme.get('accent', theme['select_bg']))
         
         # Aplica tema em todos os widgets filhos
         self._apply_theme_recursive(self.root, theme)
@@ -1496,17 +1534,71 @@ class OrganizadorExtratosGUI:
             if widget_class == 'Frame':
                 widget.configure(bg=theme['frame_bg'])
             elif widget_class == 'Label':
-                widget.configure(bg=theme['bg'], fg=theme['fg'])
+                # Verifica se é um label especial (título, status, etc.)
+                text = widget.cget('text') if hasattr(widget, 'cget') else ''
+                if '🏦' in text or 'Organizador' in text:
+                    # Título principal com cor de destaque
+                    widget.configure(bg=theme['bg'], fg=theme.get('accent', theme['fg']))
+                else:
+                    widget.configure(bg=theme['bg'], fg=theme['fg'])
             elif widget_class == 'Button':
-                widget.configure(bg=theme['button_bg'], fg=theme['button_fg'], activebackground=theme['select_bg'])
+                # Botões com melhor contraste e hover
+                widget.configure(
+                    bg=theme['button_bg'], 
+                    fg=theme['button_fg'], 
+                    activebackground=theme.get('hover', theme['select_bg']),
+                    activeforeground=theme['select_fg'],
+                    relief='flat',
+                    borderwidth=1,
+                    highlightthickness=0
+                )
             elif widget_class == 'Entry':
-                widget.configure(bg=theme['entry_bg'], fg=theme['entry_fg'], insertbackground=theme['fg'])
+                widget.configure(
+                    bg=theme['entry_bg'], 
+                    fg=theme['entry_fg'], 
+                    insertbackground=theme['entry_fg'],
+                    selectbackground=theme['select_bg'],
+                    selectforeground=theme['select_fg'],
+                    relief='flat',
+                    borderwidth=1
+                )
             elif widget_class == 'Text':
-                widget.configure(bg=theme['text_bg'], fg=theme['text_fg'], insertbackground=theme['fg'])
+                widget.configure(
+                    bg=theme['text_bg'], 
+                    fg=theme['text_fg'], 
+                    insertbackground=theme['text_fg'],
+                    selectbackground=theme['select_bg'],
+                    selectforeground=theme['select_fg'],
+                    relief='flat',
+                    borderwidth=1
+                )
             elif widget_class == 'Listbox':
-                widget.configure(bg=theme['entry_bg'], fg=theme['entry_fg'], selectbackground=theme['select_bg'])
+                widget.configure(
+                    bg=theme['entry_bg'], 
+                    fg=theme['entry_fg'], 
+                    selectbackground=theme['select_bg'],
+                    selectforeground=theme['select_fg'],
+                    relief='flat',
+                    borderwidth=1
+                )
             elif widget_class == 'Scrollbar':
-                widget.configure(bg=theme['button_bg'], troughcolor=theme['bg'])
+                widget.configure(
+                    bg=theme['button_bg'], 
+                    troughcolor=theme['bg'],
+                    activebackground=theme.get('hover', theme['button_bg']),
+                    relief='flat'
+                )
+            elif widget_class == 'Spinbox':
+                widget.configure(
+                    bg=theme['entry_bg'],
+                    fg=theme['entry_fg'],
+                    insertbackground=theme['entry_fg'],
+                    selectbackground=theme['select_bg'],
+                    selectforeground=theme['select_fg'],
+                    buttonbackground=theme['button_bg'],
+                    relief='flat',
+                    borderwidth=1
+                )
         except:
             pass  # Ignora erros de configuração
             
