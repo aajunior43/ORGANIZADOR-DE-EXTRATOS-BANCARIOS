@@ -104,92 +104,130 @@ class OrganizadorExtratosGUI:
         
     def configure_modern_style(self):
         """Configura estilo moderno e profissional para os componentes"""
-        # Cores modernas inspiradas no VS Code e Microsoft Fluent Design
+        # Paleta de cores moderna inspirada no Material Design 3 e Fluent Design
         colors = {
-            'primary': '#0078d4',      # Azul Microsoft
-            'primary_dark': '#106ebe', # Azul escuro
-            'success': '#107c10',      # Verde Microsoft
-            'warning': '#ff8c00',      # Laranja Microsoft
-            'error': '#d13438',        # Vermelho Microsoft
+            'primary': '#4f46e5',      # Indigo moderno
+            'primary_dark': '#3730a3', # Indigo escuro
+            'primary_light': '#a5b4fc', # Indigo claro
+            'success': '#10b981',      # Verde esmeralda
+            'warning': '#f59e0b',      # Âmbar
+            'error': '#ef4444',        # Vermelho coral
             'surface': '#ffffff',      # Branco puro
-            'surface_alt': '#f3f2f1',  # Cinza claro Microsoft
-            'text': '#323130',         # Texto escuro Microsoft
-            'text_secondary': '#605e5c', # Texto secundário
-            'border': '#edebe9',       # Borda sutil
-            'hover': '#f3f2f1'         # Estado hover
+            'surface_alt': '#f8fafc',  # Cinza neutro claro
+            'surface_card': '#fefefe', # Card background
+            'text': '#1f2937',         # Texto primário
+            'text_secondary': '#6b7280', # Texto secundário
+            'text_muted': '#9ca3af',   # Texto desbotado
+            'border': '#e5e7eb',       # Borda sutil
+            'border_focus': '#4f46e5', # Borda em foco
+            'hover': '#f1f5f9',        # Estado hover
+            'shadow': 'rgba(0, 0, 0, 0.1)', # Sombra sutil
+            'accent': '#06b6d4'        # Cyan accent
         }
         
-        # Estilo para Notebook (abas) - Design moderno
+        # Estilo para Notebook (abas) - Design moderno com gradiente
         self.style.configure('Modern.TNotebook', 
                            background=colors['surface'],
                            borderwidth=0,
-                           tabmargins=[0, 0, 0, 0])
+                           tabmargins=[2, 2, 2, 0])
         
         self.style.configure('Modern.TNotebook.Tab', 
-                           padding=[24, 16, 24, 16],
+                           padding=[20, 12, 20, 12],
                            font=('Segoe UI', 11, 'normal'),
                            background=colors['surface_alt'],
-                           foreground=colors['text'],
-                           borderwidth=0,
-                           focuscolor='none')
+                           foreground=colors['text_secondary'],
+                           borderwidth=1,
+                           bordercolor=colors['border'],
+                           focuscolor='none',
+                           relief='flat')
         
         self.style.map('Modern.TNotebook.Tab',
-                      background=[('selected', colors['surface']),
+                      background=[('selected', colors['surface_card']),
                                 ('active', colors['hover']),
                                 ('!active', colors['surface_alt'])],
                       foreground=[('selected', colors['primary']),
                                 ('active', colors['text']),
                                 ('!active', colors['text_secondary'])],
+                      bordercolor=[('selected', colors['primary']),
+                                 ('active', colors['border_focus']),
+                                 ('!active', colors['border'])],
                       expand=[('selected', [1, 1, 1, 0])])
         
-        # Estilo para Progressbar - Design fluent
+        # Estilo para Progressbar - Design elegante com gradiente
         self.style.configure('Modern.Horizontal.TProgressbar',
                            background=colors['primary'],
                            troughcolor=colors['surface_alt'],
                            borderwidth=0,
-                           lightcolor=colors['primary'],
-                           darkcolor=colors['primary'],
+                           lightcolor=colors['primary_light'],
+                           darkcolor=colors['primary_dark'],
                            troughrelief='flat',
-                           relief='flat')
+                           relief='flat',
+                           thickness=8)
         
-        # Estilo para LabelFrame - Cards modernos
+        # Progressbar com animação suave
+        self.style.configure('Animated.Horizontal.TProgressbar',
+                           background=colors['accent'],
+                           troughcolor=colors['surface_alt'],
+                           borderwidth=0,
+                           lightcolor=colors['accent'],
+                           darkcolor=colors['accent'],
+                           thickness=6)
+        
+        # Estilo para LabelFrame - Cards modernos com sombra
         self.style.configure('Modern.TLabelframe',
-                           background=colors['surface'],
+                           background=colors['surface_card'],
                            borderwidth=1,
-                           relief='solid',
+                           relief='flat',
                            bordercolor=colors['border'])
         
         self.style.configure('Modern.TLabelframe.Label',
-                           background=colors['surface'],
+                           background=colors['surface_card'],
                            foreground=colors['text'],
                            font=('Segoe UI', 12, 'bold'))
         
-        # Estilo para Buttons - Fluent Design
+        # Card com destaque
+        self.style.configure('Highlight.TLabelframe',
+                           background=colors['surface_card'],
+                           borderwidth=2,
+                           relief='flat',
+                           bordercolor=colors['primary_light'])
+        
+        self.style.configure('Highlight.TLabelframe.Label',
+                           background=colors['surface_card'],
+                           foreground=colors['primary'],
+                           font=('Segoe UI', 12, 'bold'))
+        
+        # Estilo para Buttons - Design moderno com gradiente
         self.style.configure('Modern.TButton',
                            background=colors['primary'],
                            foreground='white',
                            borderwidth=0,
                            focuscolor='none',
-                           font=('Segoe UI', 10, 'normal'),
-                           padding=[16, 8])
+                           font=('Segoe UI', 10, 'medium'),
+                           padding=[20, 12],
+                           relief='flat')
         
         self.style.map('Modern.TButton',
                       background=[('active', colors['primary_dark']),
-                                ('pressed', colors['primary_dark'])])
+                                ('pressed', colors['primary_dark'])],
+                      relief=[('pressed', 'flat')])
         
-        # Botão secundário
+        # Botão secundário elegante
         self.style.configure('Secondary.TButton',
-                           background=colors['surface_alt'],
+                           background=colors['surface_card'],
                            foreground=colors['text'],
                            borderwidth=1,
                            bordercolor=colors['border'],
                            focuscolor='none',
                            font=('Segoe UI', 10, 'normal'),
-                           padding=[16, 8])
+                           padding=[18, 10],
+                           relief='flat')
         
         self.style.map('Secondary.TButton',
                       background=[('active', colors['hover']),
-                                ('pressed', colors['hover'])])
+                                ('pressed', colors['surface_alt'])],
+                      bordercolor=[('active', colors['border_focus']),
+                                 ('pressed', colors['primary'])])
         
         # Botão de sucesso
         self.style.configure('Success.TButton',
@@ -197,8 +235,13 @@ class OrganizadorExtratosGUI:
                            foreground='white',
                            borderwidth=0,
                            focuscolor='none',
-                           font=('Segoe UI', 10, 'bold'),
-                           padding=[16, 8])
+                           font=('Segoe UI', 10, 'medium'),
+                           padding=[18, 10],
+                           relief='flat')
+        
+        self.style.map('Success.TButton',
+                      background=[('active', '#059669'),
+                                ('pressed', '#047857')])
         
         # Botão de perigo
         self.style.configure('Danger.TButton',
@@ -206,36 +249,172 @@ class OrganizadorExtratosGUI:
                            foreground='white',
                            borderwidth=0,
                            focuscolor='none',
+                           font=('Segoe UI', 10, 'medium'),
+                           padding=[18, 10],
+                           relief='flat')
+        
+        self.style.map('Danger.TButton',
+                      background=[('active', '#dc2626'),
+                                ('pressed', '#b91c1c')])
+        
+        # Botão com ícone
+        self.style.configure('Icon.TButton',
+                           background=colors['accent'],
+                           foreground='white',
+                           borderwidth=0,
+                           focuscolor='none',
                            font=('Segoe UI', 10, 'normal'),
-                           padding=[16, 8])
+                           padding=[14, 10],
+                           relief='flat')
         
-        # Entry moderno
+        self.style.map('Icon.TButton',
+                      background=[('active', '#0891b2'),
+                                ('pressed', '#0e7490')])
+        
+        # Entry moderno com foco visual aprimorado
         self.style.configure('Modern.TEntry',
-                           fieldbackground=colors['surface'],
-                           borderwidth=1,
+                           fieldbackground=colors['surface_card'],
+                           borderwidth=2,
                            bordercolor=colors['border'],
-                           focuscolor=colors['primary'],
-                           font=('Segoe UI', 10))
+                           focuscolor='none',
+                           insertcolor=colors['text'],
+                           font=('Segoe UI', 11),
+                           relief='flat')
         
-        # Combobox moderno
+        self.style.map('Modern.TEntry',
+                      bordercolor=[('focus', colors['border_focus']),
+                                 ('!focus', colors['border'])],
+                      fieldbackground=[('focus', colors['surface']),
+                                     ('!focus', colors['surface_card'])])
+        
+        # Combobox moderno elegante
         self.style.configure('Modern.TCombobox',
-                           fieldbackground=colors['surface'],
-                           borderwidth=1,
+                           fieldbackground=colors['surface_card'],
+                           borderwidth=2,
                            bordercolor=colors['border'],
-                           focuscolor=colors['primary'],
-                           font=('Segoe UI', 10))
+                           focuscolor='none',
+                           selectbackground=colors['primary'],
+                           selectforeground='white',
+                           font=('Segoe UI', 11),
+                           relief='flat')
         
-        # Scrollbar moderna
+        self.style.map('Modern.TCombobox',
+                      bordercolor=[('focus', colors['border_focus']),
+                                 ('!focus', colors['border'])],
+                      fieldbackground=[('focus', colors['surface']),
+                                     ('!focus', colors['surface_card'])])
+        
+        # Scrollbar moderna minimalista
         self.style.configure('Modern.Vertical.TScrollbar',
                            background=colors['surface_alt'],
                            troughcolor=colors['surface_alt'],
                            borderwidth=0,
-                           arrowcolor=colors['text_secondary'],
-                           darkcolor=colors['surface_alt'],
-                           lightcolor=colors['surface_alt'])
+                           arrowcolor=colors['text_muted'],
+                           darkcolor=colors['border'],
+                           lightcolor=colors['surface_card'],
+                           width=12)
+        
+        self.style.map('Modern.Vertical.TScrollbar',
+                      background=[('active', colors['border']),
+                                ('pressed', colors['text_muted'])])
+        
+        # Adicionando estilo para Treeview moderno
+        self.style.configure('Modern.Treeview',
+                           background=colors['surface_card'],
+                           foreground=colors['text'],
+                           fieldbackground=colors['surface_card'],
+                           borderwidth=1,
+                           bordercolor=colors['border'],
+                           font=('Segoe UI', 10))
+        
+        self.style.configure('Modern.Treeview.Heading',
+                           background=colors['surface_alt'],
+                           foreground=colors['text'],
+                           font=('Segoe UI', 10, 'bold'),
+                           relief='flat')
+        
+        self.style.map('Modern.Treeview',
+                      background=[('selected', colors['primary_light']),
+                                ('focus', colors['hover'])])
         
         # Armazena as cores para uso posterior
         self.modern_colors = colors
+        
+        # Configurar efeitos hover para melhor UX
+        self.setup_hover_effects()
+        
+    def setup_hover_effects(self):
+        """Configura efeitos hover e transições suaves para melhor UX"""
+        
+        def create_hover_effect(widget, hover_color, normal_color, cursor='hand2'):
+            """Cria efeito hover para um widget"""
+            def on_enter(event):
+                widget.config(bg=hover_color, cursor=cursor)
+                
+            def on_leave(event):
+                widget.config(bg=normal_color, cursor='')
+                
+            widget.bind("<Enter>", on_enter)
+            widget.bind("<Leave>", on_leave)
+            
+        def create_button_hover(widget, hover_bg, normal_bg, hover_fg=None, normal_fg=None):
+            """Cria efeito hover específico para botões"""
+            def on_enter(event):
+                widget.config(bg=hover_bg, cursor='hand2')
+                if hover_fg:
+                    widget.config(fg=hover_fg)
+                    
+            def on_leave(event):
+                widget.config(bg=normal_bg, cursor='')
+                if normal_fg:
+                    widget.config(fg=normal_fg)
+                    
+            widget.bind("<Enter>", on_enter)
+            widget.bind("<Leave>", on_leave)
+            
+        # Armazenar funções para uso posterior
+        self.create_hover_effect = create_hover_effect
+        self.create_button_hover = create_button_hover
+        
+    def apply_modern_button_style(self, button, style_type='primary'):
+        """Aplica estilo moderno com efeitos hover a um botão"""
+        colors = self.modern_colors
+        
+        if style_type == 'primary':
+            normal_bg = colors['primary']
+            hover_bg = colors['primary_dark']
+            fg = 'white'
+        elif style_type == 'secondary':
+            normal_bg = colors['surface_alt']
+            hover_bg = colors['hover']
+            fg = colors['text']
+        elif style_type == 'success':
+            normal_bg = colors['success']
+            hover_bg = '#059669'
+            fg = 'white'
+        elif style_type == 'danger':
+            normal_bg = colors['error']
+            hover_bg = '#dc2626'
+            fg = 'white'
+        else:
+            normal_bg = colors['primary']
+            hover_bg = colors['primary_dark']
+            fg = 'white'
+            
+        # Aplicar estilo base
+        button.config(
+            bg=normal_bg,
+            fg=fg,
+            relief='flat',
+            font=('Segoe UI', 10, 'normal'),
+            padx=16,
+            pady=8,
+            cursor='hand2',
+            borderwidth=0
+        )
+        
+        # Adicionar efeito hover
+        self.create_button_hover(button, hover_bg, normal_bg, fg, fg)
         
     def setup_variables(self):
         """Inicializa variáveis"""
@@ -368,68 +547,69 @@ class OrganizadorExtratosGUI:
         shadow_frame = Frame(parent, bg='#e5e5e5', height=2)
         shadow_frame.pack(fill=X, padx=(2, 0), pady=(0, 2))
         
-        # Frame principal da seção - Card moderno
+        # Frame principal da seção - Card moderno com estilo aprimorado
         section_frame = Frame(parent, 
-                             bg=self.modern_colors['surface'], 
+                             bg=self.modern_colors['surface_card'], 
                              relief='flat', 
                              bd=0,
                              highlightbackground=self.modern_colors['border'],
                              highlightthickness=1)
+        section_frame.pack(fill=X, padx=6, pady=10)
         
-        # Cabeçalho da seção com gradiente visual
+        # Cabeçalho da seção com espaçamento otimizado
         header_frame = Frame(section_frame, 
-                            bg=self.modern_colors['surface'],
-                            height=60)
+                            bg=self.modern_colors['surface_card'],
+                            height=65)
         header_frame.pack(fill=X)
         header_frame.pack_propagate(False)
         
-        # Container do título com ícone
-        title_container = Frame(header_frame, bg=self.modern_colors['surface'])
-        title_container.pack(fill=BOTH, expand=True, padx=20, pady=16)
+        # Container do título com melhor padding
+        title_container = Frame(header_frame, bg=self.modern_colors['surface_card'])
+        title_container.pack(fill=BOTH, expand=True, padx=24, pady=18)
         
         # Linha do título com ícone
-        title_line = Frame(title_container, bg=self.modern_colors['surface'])
+        title_line = Frame(title_container, bg=self.modern_colors['surface_card'])
         title_line.pack(fill=X)
         
-        # Ícone (se fornecido)
+        # Ícone (se fornecido) com melhor visual
         if icon:
             icon_label = Label(title_line, 
                               text=icon, 
-                              font=("Segoe UI Emoji", 16),
-                              bg=self.modern_colors['surface'],
+                              font=("Segoe UI Emoji", 18),
+                              bg=self.modern_colors['surface_card'],
                               fg=self.modern_colors['primary'])
-            icon_label.pack(side=LEFT, padx=(0, 12))
+            icon_label.pack(side=LEFT, padx=(0, 16))
         
-        # Título principal
+        # Título principal com tipografia aprimorada
         title_label = Label(title_line, 
                            text=title, 
-                           font=("Segoe UI", 14, "bold"),
-                           bg=self.modern_colors['surface'],
+                           font=("Segoe UI", 15, "bold"),
+                           bg=self.modern_colors['surface_card'],
                            fg=self.modern_colors['text'])
         title_label.pack(side=LEFT, anchor=W)
         
-        # Descrição (se fornecida)
+        # Descrição (se fornecida) com melhor formatação
         if description:
             desc_label = Label(title_container, 
                               text=description,
                               font=("Segoe UI", 10),
-                              bg=self.modern_colors['surface'],
+                              bg=self.modern_colors['surface_card'],
                               fg=self.modern_colors['text_secondary'],
-                              wraplength=600,
+                              wraplength=750,
                               justify=LEFT)
-            desc_label.pack(anchor=W, pady=(8, 0))
+            desc_label.pack(anchor=W, pady=(10, 0))
         
-        # Linha separadora sutil
+        # Linha separadora mais sutil
         separator = Frame(section_frame, 
                          bg=self.modern_colors['border'], 
                          height=1)
-        separator.pack(fill=X, padx=20)
+        separator.pack(fill=X, padx=24)
         
-        # Área de conteúdo com padding interno
+        # Área de conteúdo com padding otimizado
         content_frame = Frame(section_frame, 
-                             bg=self.modern_colors['surface'],
-                             padx=20, 
-                             pady=20)
+                             bg=self.modern_colors['surface_card'],
+                             padx=24, 
+                             pady=22)
         content_frame.pack(fill=BOTH, expand=True)
         
         return content_frame
@@ -454,7 +634,7 @@ class OrganizadorExtratosGUI:
         title_area = Frame(top_line, bg='#ffffff' if self.current_theme == 'light' else '#252526')
         title_area.pack(side=LEFT, fill=X, expand=True)
         
-        # Título principal com fonte moderna
+        # Título principal com ícones modernos
         title_font = Font(family="Segoe UI", size=22, weight="bold")
         title_label = Label(title_area, text="🏦 Organizador de Extratos Bancários", 
                            font=title_font, 
@@ -462,9 +642,9 @@ class OrganizadorExtratosGUI:
                            fg=self.colors['primary'])
         title_label.pack(anchor=W)
         
-        # Subtítulo com estilo moderno
+        # Subtítulo com ícones aprimorados
         subtitle_font = Font(family="Segoe UI", size=11)
-        subtitle_label = Label(title_area, text="Powered by Google Gemini AI • Versão 2.0", 
+        subtitle_label = Label(title_area, text="🤖 Powered by Google Gemini AI • 🚀 Versão 2.0", 
                               font=subtitle_font, 
                               bg='#ffffff' if self.current_theme == 'light' else '#252526',
                               fg='#6c757d' if self.current_theme == 'light' else '#9cdcfe')
@@ -625,8 +805,9 @@ class OrganizadorExtratosGUI:
         Entry(input_frame, textvariable=self.base_directory, 
               font=("Arial", 10), state='readonly').pack(side=LEFT, fill=X, expand=True)
         
-        Button(input_frame, text="Selecionar", command=self.select_input_directory,
-               bg=self.colors['success'], fg='white').pack(side=RIGHT, padx=(5, 0))
+        Button(input_frame, text="📂 Selecionar", command=self.select_input_directory,
+               bg=self.colors['success'], fg='white', relief='flat', cursor='hand2',
+               font=("Segoe UI", 9)).pack(side=RIGHT, padx=(5, 0))
         
         # Diretório de saída
         Label(dir_section, text="Nome da pasta organizada:", 
