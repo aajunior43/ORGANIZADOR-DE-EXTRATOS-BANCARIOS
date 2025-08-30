@@ -28,19 +28,24 @@ echo Fazendo commit com a mensagem: "%commit_msg%"
 git commit -m "%commit_msg%"
 
 echo.
+echo Detectando branch principal...
+for /f "tokens=*" %%i in ('git branch --show-current') do set current_branch=%%i
+echo Branch atual: %current_branch%
+
+echo.
 echo Fazendo push para o repositorio remoto...
-git push origin main
+git push origin %current_branch%
 
 if %errorlevel% neq 0 (
     echo.
     echo ERRO: Falha ao fazer push. Tentando fazer pull primeiro...
     echo.
-    echo Fazendo pull do branch main...
-    git pull origin main
+    echo Fazendo pull do branch %current_branch%...
+    git pull origin %current_branch%
     
     echo.
     echo Tentando push novamente...
-    git push origin main
+    git push origin %current_branch%
     
     if %errorlevel% neq 0 (
         echo.
@@ -53,7 +58,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo Fazendo pull para sincronizar com o repositorio remoto...
-git pull origin main
+git pull origin %current_branch%
 
 echo.
 echo ========================================
