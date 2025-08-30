@@ -57,6 +57,289 @@ try:
 except ImportError:
     genai = None
 
+# ==================== SISTEMA DE NOTIFICAÇÕES TOAST ====================
+
+class ToastNotification:
+    """Sistema de notificações Toast/Snackbar moderno"""
+    
+    def __init__(self, parent):
+        self.parent = parent
+        self.notifications = []  # Lista de notificações ativas
+        self.notification_id = 0  # ID único para cada notificação
+        
+        # Configurações visuais
+        self.toast_width = 400
+        self.toast_height = 80
+        self.margin = 20
+        self.animation_speed = 10  # ms entre frames de animação
+        self.slide_distance = 5   # pixels por frame
+        
+        # Cores por tipo de notificação
+        self.colors = {
+            'success': {
+                'bg': '#10b981',
+                'fg': '#ffffff',
+                'border': '#059669',
+                'icon': '✅'
+            },
+            'error': {
+                'bg': '#ef4444',
+                'fg': '#ffffff', 
+                'border': '#dc2626',
+                'icon': '❌'
+            },
+            'warning': {
+                'bg': '#f59e0b',
+                'fg': '#ffffff',
+                'border': '#d97706',
+                'icon': '⚠️'
+            },
+            'info': {
+                'bg': '#3b82f6',
+                'fg': '#ffffff',
+                'border': '#2563eb',
+                'icon': 'ℹ️'
+            },
+            'processing': {
+                'bg': '#8b5cf6',
+                'fg': '#ffffff',
+                'border': '#7c3aed',
+                'icon': '⚙️'
+            }
+        }
+        
+    def show(self, message, notification_type='info', duration=4000, action_text=None, action_callback=None):
+        """
+        Exibe uma notificação toast
+        
+        Args:
+            message: Texto da notificação
+            notification_type: 'success', 'error', 'warning', 'info', 'processing'
+            duration: Duração em ms (0 = permanente até clique)
+            action_text: Texto do botão de ação (opcional)
+            action_callback: Função chamada ao clicar no botão de ação
+        """
+        self.notification_id += 1
+        
+        # Cria janela toplevel para a notificação
+        toast = Toplevel(self.parent)
+        toast.withdraw()  # Esconde inicialmente
+        
+        # Configurações da janela
+        toast.overrideredirect(True)  # Remove decorações
+        toast.attributes('-topmost', True)  # Sempre no topo
+        toast.attributes('-alpha', 0.0)  # Inicia transparente
+        
+        # Calcula posição (canto superior direito)
+        screen_width = self.parent.winfo_screenwidth()
+        screen_height = self.parent.winfo_screenheight()
+        
+        # Posição Y baseada no número de notificações ativas
+        y_offset = self.margin + (len(self.notifications) * (self.toast_height + 10))
+        
+        x = screen_width - self.toast_width - self.margin
+        y = y_offset
+        
+        toast.geometry(f"{self.toast_width}x{self.toast_height}+{x}+{y}")
+        
+        # Obtém cores do tipo
+        colors = self.colors.get(notification_type, self.colors['info'])
+        
+        # Frame principal com bordas arredondadas simuladas
+        main_frame = Frame(toast, 
+                          bg=colors['bg'],
+                          relief='flat',
+                          bd=0,
+                          highlightbackground=colors['border'],
+                          highlightthickness=2)
+        main_frame.pack(fill=BOTH, expand=True, padx=2, pady=2)
+        
+        # Container do conteúdo
+        content_frame = Frame(main_frame, bg=colors['bg'])
+        content_frame.pack(fill=BOTH, expand=True, padx=15, pady=12)
+        
+        # Linha superior com ícone e botão fechar
+        top_frame = Frame(content_frame, bg=colors['bg'])
+        top_frame.pack(fill=X)
+        
+        # Ícone
+        icon_label = Label(top_frame, 
+                          text=colors['icon'],
+                          font=('Segoe UI Emoji', 16),
+                          bg=colors['bg'],
+                          fg=colors['fg'])
+        icon_label.pack(side=LEFT)
+        
+        # Botão fechar
+        close_btn = Label(top_frame,
+                         text='✖',
+                         font=('Segoe UI', 12, 'bold'),
+                         bg=colors['bg'],
+                         fg=colors['fg'],
+                         cursor='hand2')
+        close_btn.pack(side=RIGHT)
+        
+        # Mensagem principal
+        message_label = Label(content_frame,
+                             text=message,
+                             font=('Segoe UI', 10),
+                             bg=colors['bg'],
+                             fg=colors['fg'],
+                             wraplength=300,
+                             justify=LEFT)
+        message_label.pack(anchor=W, pady=(5, 0))
+        
+        # Botão de ação (se fornecido)
+        if action_text and action_callback:
+            action_frame = Frame(content_frame, bg=colors['bg'])
+            action_frame.pack(fill=X, pady=(8, 0))
+            
+            action_btn = Label(action_frame,
+                              text=action_text,
+                              font=('Segoe UI', 9, 'underline'),
+                              bg=colors['bg'],
+                              fg=colors['fg'],
+                              cursor='hand2')
+            action_btn.pack(side=RIGHT)
+            
+            # Bind do clique no botão de ação
+            def on_action_click(event):
+                try:
+                    action_callback()
+                finally:
+                    self.hide_notification(toast, self.notification_id)
+                    
+            action_btn.bind('<Button-1>', on_action_click)
+        
+        # Barra de progresso para duração (se não for permanente)
+        if duration > 0:
+            progress_frame = Frame(main_frame, bg=colors['border'], height=3)
+            progress_frame.pack(fill=X, side=BOTTOM)
+            
+            progress_bar = Frame(progress_frame, bg=colors['fg'], height=3)
+            progress_bar.pack(fill=X)
+            
+            # Anima a barra de progresso
+            self.animate_progress_bar(progress_bar, duration)
+        
+        # Eventos de clique para fechar
+        def close_notification(event=None):
+            self.hide_notification(toast, self.notification_id)
+            
+        close_btn.bind('<Button-1>', close_notification)
+        toast.bind('<Button-1>', close_notification)
+        main_frame.bind('<Button-1>', close_notification)
+        
+        # Adiciona à lista de notificações ativas
+        notification_data = {
+            'id': self.notification_id,
+            'window': toast,
+            'type': notification_type,
+            'message': message
+        }
+        self.notifications.append(notification_data)
+        
+        # Anima entrada
+        self.animate_show(toast)
+        
+        # Auto-remove após duração (se especificada)
+        if duration > 0:
+            self.parent.after(duration, lambda: self.hide_notification(toast, self.notification_id))
+        
+        return self.notification_id
+    
+    def animate_show(self, toast):
+        """Anima a entrada da notificação"""
+        def fade_in(alpha=0.0):
+            if alpha < 0.95:
+                alpha += 0.05
+                toast.attributes('-alpha', alpha)
+                toast.deiconify()  # Mostra a janela
+                self.parent.after(20, lambda: fade_in(alpha))
+            else:
+                toast.attributes('-alpha', 0.95)
+                
+        fade_in()
+    
+    def animate_progress_bar(self, progress_bar, duration):
+        """Anima a barra de progresso da duração"""
+        def shrink_bar(width=1.0):
+            if width > 0:
+                progress_bar.place(relwidth=width, relheight=1.0)
+                width -= 1.0 / (duration / 50)  # 50ms por frame
+                self.parent.after(50, lambda: shrink_bar(width))
+            else:
+                progress_bar.place_forget()
+                
+        shrink_bar()
+    
+    def hide_notification(self, toast, notification_id):
+        """Esconde uma notificação com animação"""
+        def fade_out(alpha=0.95):
+            if alpha > 0:
+                alpha -= 0.1
+                try:
+                    toast.attributes('-alpha', alpha)
+                    self.parent.after(20, lambda: fade_out(alpha))
+                except:
+                    pass  # Janela já foi destruída
+            else:
+                try:
+                    toast.destroy()
+                except:
+                    pass
+                    
+                # Remove da lista de notificações ativas
+                self.notifications = [n for n in self.notifications if n['id'] != notification_id]
+                
+                # Reposiciona notificações restantes
+                self.reposition_notifications()
+        
+        fade_out()
+    
+    def reposition_notifications(self):
+        """Reposiciona as notificações após remoção de uma"""
+        screen_width = self.parent.winfo_screenwidth()
+        
+        for i, notification in enumerate(self.notifications):
+            toast = notification['window']
+            y_offset = self.margin + (i * (self.toast_height + 10))
+            x = screen_width - self.toast_width - self.margin
+            
+            try:
+                toast.geometry(f"{self.toast_width}x{self.toast_height}+{x}+{y_offset}")
+            except:
+                pass  # Janela pode ter sido destruída
+    
+    def clear_all(self):
+        """Remove todas as notificações ativas"""
+        for notification in self.notifications[:]:  # Cópia da lista
+            try:
+                notification['window'].destroy()
+            except:
+                pass
+        self.notifications.clear()
+    
+    def show_success(self, message, duration=3000, action_text=None, action_callback=None):
+        """Atalho para notificação de sucesso"""
+        return self.show(message, 'success', duration, action_text, action_callback)
+    
+    def show_error(self, message, duration=5000, action_text=None, action_callback=None):
+        """Atalho para notificação de erro"""
+        return self.show(message, 'error', duration, action_text, action_callback)
+    
+    def show_warning(self, message, duration=4000, action_text=None, action_callback=None):
+        """Atalho para notificação de aviso"""
+        return self.show(message, 'warning', duration, action_text, action_callback)
+    
+    def show_info(self, message, duration=3000, action_text=None, action_callback=None):
+        """Atalho para notificação informativa"""
+        return self.show(message, 'info', duration, action_text, action_callback)
+    
+    def show_processing(self, message, duration=0, action_text=None, action_callback=None):
+        """Atalho para notificação de processamento (permanente por padrão)"""
+        return self.show(message, 'processing', duration, action_text, action_callback)
+
 # ==================== CONFIGURAÇÕES ====================
 
 # Mapeamento de meses
@@ -79,6 +362,10 @@ class OrganizadorExtratosGUI:
         self.setup_ui()
         self.load_preferences()  # Carrega depois da UI ser criada
         self.apply_theme()
+        
+        # Inicializa sistema de notificações toast
+        self.toast = ToastNotification(self.root)
+        
         self.check_dependencies()
         self.load_api_keys()
         self.check_for_checkpoint()
@@ -488,6 +775,13 @@ class OrganizadorExtratosGUI:
             'by_bank': {},
             'by_month': {}
         }
+        
+        # Sistema de notificações toast
+        self.toast_notifications = []  # Lista de toasts ativos
+        self.toast_counter = 0  # Contador para IDs únicos
+        self.toast_enabled = True  # Permite desabilitar toasts
+        self.toast_position = "bottom_right"  # Posição dos toasts
+        self.max_toasts = 5  # Máximo de toasts simultâneos
         
         # Inicializa cores baseadas no tema atual
         self.update_colors()
@@ -944,6 +1238,143 @@ class OrganizadorExtratosGUI:
         self.files_listbox.pack(side=LEFT, fill=BOTH, expand=True, padx=(10, 0), pady=(0, 10))
         scrollbar.pack(side=RIGHT, fill=Y, padx=(0, 10), pady=(0, 10))
         
+        # Seção Notificações Toast
+        toast_section = LabelFrame(config_frame, text="🔔 Notificações Toast", 
+                                  font=("Arial", 12, "bold"), bg=self.colors['background'])
+        toast_section.pack(fill=X, padx=20, pady=10)
+        
+        # Descrição das notificações
+        toast_desc_frame = Frame(toast_section, bg='#e3f2fd', relief=RIDGE, bd=1)
+        toast_desc_frame.pack(fill=X, padx=10, pady=(10, 5))
+        
+        Label(toast_desc_frame, text="💡 NOTIFICAÇÕES INTELIGENTES", 
+              bg='#e3f2fd', fg='#1565c0', font=("Arial", 10, "bold")).pack(pady=2)
+        Label(toast_desc_frame, text="• Notificações aparecem automaticamente para eventos importantes", 
+              bg='#e3f2fd', fg='#1565c0', font=("Arial", 9)).pack(anchor=W, padx=5)
+        Label(toast_desc_frame, text="• Sucessos, erros e marcos do processamento são destacados", 
+              bg='#e3f2fd', fg='#1565c0', font=("Arial", 9)).pack(anchor=W, padx=5)
+        Label(toast_desc_frame, text="• Clique nas notificações para fechá-las rapidamente", 
+              bg='#e3f2fd', fg='#1565c0', font=("Arial", 9)).pack(anchor=W, padx=5, pady=(0, 2))
+        
+        # Controles das notificações
+        toast_controls_frame = Frame(toast_section, bg=self.colors['background'])
+        toast_controls_frame.pack(fill=X, padx=10, pady=10)
+        
+        # Toggle para habilitar/desabilitar
+        self.toast_enabled_var = BooleanVar(value=self.toast_enabled)
+        toast_checkbox = Checkbutton(toast_controls_frame, 
+                                    text="🔔 Habilitar notificações toast",
+                                    variable=self.toast_enabled_var,
+                                    command=self.toggle_toast_from_ui,
+                                    bg=self.colors['background'],
+                                    font=("Arial", 10, "bold"))
+        toast_checkbox.pack(anchor=W, pady=(0, 10))
+        
+        # Posição das notificações
+        position_frame = Frame(toast_controls_frame, bg=self.colors['background'])
+        position_frame.pack(fill=X, pady=5)
+        
+        Label(position_frame, text="📍 Posição na tela:", 
+              bg=self.colors['background'], font=("Arial", 10, "bold")).pack(side=LEFT)
+        
+        self.toast_position_var = StringVar(value=self.toast_position)
+        position_combo = ttk.Combobox(position_frame, 
+                                     textvariable=self.toast_position_var,
+                                     values=["bottom_right", "top_right", "bottom_left", "top_left"],
+                                     state="readonly",
+                                     width=15)
+        position_combo.pack(side=LEFT, padx=(10, 5))
+        position_combo.bind('<<ComboboxSelected>>', self.change_toast_position)
+        
+        # Tradução das posições
+        position_labels = {
+            "bottom_right": "Inferior Direita",
+            "top_right": "Superior Direita", 
+            "bottom_left": "Inferior Esquerda",
+            "top_left": "Superior Esquerda"
+        }
+        
+        self.position_label = Label(position_frame, 
+                                   text=f"({position_labels.get(self.toast_position, 'Inferior Direita')})",
+                                   bg=self.colors['background'], 
+                                   font=("Arial", 9),
+                                   fg='#666666')
+        self.position_label.pack(side=LEFT, padx=(5, 0))
+        
+        # Botões de teste e controle
+        toast_buttons_frame = Frame(toast_controls_frame, bg=self.colors['background'])
+        toast_buttons_frame.pack(fill=X, pady=(10, 0))
+        
+        Button(toast_buttons_frame, text="🧪 Testar Sucesso", 
+               command=lambda: self.test_toast("SUCCESS"),
+               bg=self.colors['success'], fg='white', font=("Arial", 9)).pack(side=LEFT, padx=(0, 5))
+        
+        Button(toast_buttons_frame, text="🧪 Testar Erro", 
+               command=lambda: self.test_toast("ERROR"),
+               bg=self.colors['error'], fg='white', font=("Arial", 9)).pack(side=LEFT, padx=(0, 5))
+        
+        Button(toast_buttons_frame, text="🧪 Testar Aviso", 
+               command=lambda: self.test_toast("WARNING"),
+               bg=self.colors['warning'], fg='white', font=("Arial", 9)).pack(side=LEFT, padx=(0, 5))
+        
+        Button(toast_buttons_frame, text="🧪 Testar Info", 
+               command=lambda: self.test_toast("INFO"),
+               bg=self.colors['primary'], fg='white', font=("Arial", 9)).pack(side=LEFT, padx=(0, 5))
+        
+        Button(toast_buttons_frame, text="🗑️ Limpar Todas", 
+               command=self.clear_all_toasts,
+               bg=self.colors['secondary'], fg='white', font=("Arial", 9)).pack(side=RIGHT)
+        
+        # Status das notificações
+        self.toast_status_label = Label(toast_controls_frame, 
+                                       text=f"Status: {'Habilitadas' if self.toast_enabled else 'Desabilitadas'} | "
+                                            f"Ativas: {len(self.toast_notifications)}/5",
+                                       bg=self.colors['background'], 
+                                       font=("Arial", 9),
+                                       fg='#666666')
+        self.toast_status_label.pack(pady=(10, 0))
+        
+    def toggle_toast_from_ui(self):
+        """Toggle das notificações toast via interface"""
+        self.toast_enabled = self.toast_enabled_var.get()
+        if not self.toast_enabled:
+            self.clear_all_toasts()
+        self.update_toast_status()
+        
+    def change_toast_position(self, event=None):
+        """Muda a posição das notificações toast"""
+        new_position = self.toast_position_var.get()
+        self.set_toast_position(new_position)
+        
+        # Atualiza label explicativo
+        position_labels = {
+            "bottom_right": "Inferior Direita",
+            "top_right": "Superior Direita", 
+            "bottom_left": "Inferior Esquerda",
+            "top_left": "Superior Esquerda"
+        }
+        self.position_label.config(text=f"({position_labels.get(new_position, 'Inferior Direita')})")
+        
+    def test_toast(self, level):
+        """Testa notificações toast com mensagens de exemplo"""
+        test_messages = {
+            "SUCCESS": "✅ Teste de notificação de sucesso! Processamento concluído com êxito.",
+            "ERROR": "❌ Teste de notificação de erro! Falha na conexão com a API.",
+            "WARNING": "⚠️ Teste de notificação de aviso! Rate limit detectado, aguardando...",
+            "INFO": "ℹ️ Teste de notificação informativa! Processando arquivo 15 de 50."
+        }
+        
+        message = test_messages.get(level, "Teste de notificação")
+        self.show_toast_notification(message, level, duration=6000)  # 6 segundos para teste
+        self.update_toast_status()
+        
+    def update_toast_status(self):
+        """Atualiza o status das notificações na interface"""
+        if hasattr(self, 'toast_status_label'):
+            status_text = f"Status: {'Habilitadas' if self.toast_enabled else 'Desabilitadas'} | "
+            status_text += f"Ativas: {len(self.toast_notifications)}/{self.max_toasts}"
+            self.toast_status_label.config(text=status_text)
+        
     def setup_processing_tab(self):
         """Configura a aba de processamento"""
         process_frame = Frame(self.notebook, bg=self.colors['background'])
@@ -1336,8 +1767,8 @@ class OrganizadorExtratosGUI:
         
         return files_found
         
-    def log_message(self, message, level="INFO"):
-        """Adiciona mensagem ao log"""
+    def log_message(self, message, level="INFO", show_toast=None):
+        """Adiciona mensagem ao log com notificações toast opcionais"""
         timestamp = datetime.now().strftime("%H:%M:%S")
         
         # Usa cores do tema atual
@@ -1373,9 +1804,390 @@ class OrganizadorExtratosGUI:
         self.log_text.config(state=DISABLED)
         self.log_text.see(END)
         
+        # Determina se deve mostrar toast
+        if show_toast is None:
+            # Auto-determina baseado no nível e conteúdo da mensagem
+            show_toast = self._should_show_toast(message, level)
+        
+        # Mostra notificação toast se necessário
+        if show_toast and hasattr(self, 'show_toast_notification'):
+            self.show_toast_notification(message, level)
+        
         # Atualiza a interface
         self.root.update_idletasks()
         
+    def _should_show_toast(self, message, level):
+        """Determina automaticamente se deve mostrar toast baseado no conteúdo"""
+        # Sempre mostra para SUCCESS e ERROR
+        if level in ["SUCCESS", "ERROR"]:
+            return True
+            
+        # Mostra para WARNING importantes
+        if level == "WARNING" and any(keyword in message.lower() for keyword in 
+                                     ["falhou", "erro", "problema", "rate limit", "bloqueado"]):
+            return True
+            
+        # Mostra para marcos importantes do processamento
+        important_keywords = [
+            "processamento concluído", "organização concluída", "iniciando processamento",
+            "checkpoint salvo", "retomando processamento", "todas as chaves testadas",
+            "processamento interrompido", "arquivos encontrados"
+        ]
+        
+        if any(keyword in message.lower() for keyword in important_keywords):
+            return True
+            
+        return False
+        
+    def show_toast_notification(self, message, level="INFO", duration=4000):
+        """Mostra uma notificação toast moderna"""
+        if not self.toast_enabled:
+            return
+            
+        # Remove toasts antigos se exceder o limite
+        if len(self.toast_notifications) >= self.max_toasts:
+            oldest_toast = self.toast_notifications[0]
+            self.hide_toast(oldest_toast['id'])
+        
+        # Cria ID único para o toast
+        toast_id = f"toast_{self.toast_counter}"
+        self.toast_counter += 1
+        
+        # Configurações visuais por nível
+        toast_config = self._get_toast_config(level)
+        
+        # Cria janela do toast
+        toast_window = self._create_toast_window(message, toast_config, toast_id)
+        
+        # Posiciona o toast
+        self._position_toast(toast_window)
+        
+        # Adiciona à lista de toasts ativos
+        toast_data = {
+            'id': toast_id,
+            'window': toast_window,
+            'level': level,
+            'message': message,
+            'created_at': time.time()
+        }
+        self.toast_notifications.append(toast_data)
+        
+        # Anima entrada
+        self._animate_toast_in(toast_window)
+        
+        # Agenda remoção automática
+        self.root.after(duration, lambda: self.hide_toast(toast_id))
+        
+        return toast_id
+    
+    def _get_toast_config(self, level):
+        """Retorna configuração visual para cada tipo de toast"""
+        theme = self.themes[self.current_theme]
+        
+        configs = {
+            "SUCCESS": {
+                "bg": "#10b981" if self.current_theme == "light" else "#059669",
+                "fg": "#ffffff",
+                "icon": "✅",
+                "border": "#059669"
+            },
+            "ERROR": {
+                "bg": "#ef4444" if self.current_theme == "light" else "#dc2626", 
+                "fg": "#ffffff",
+                "icon": "❌",
+                "border": "#dc2626"
+            },
+            "WARNING": {
+                "bg": "#f59e0b" if self.current_theme == "light" else "#d97706",
+                "fg": "#ffffff", 
+                "icon": "⚠️",
+                "border": "#d97706"
+            },
+            "INFO": {
+                "bg": "#3b82f6" if self.current_theme == "light" else "#2563eb",
+                "fg": "#ffffff",
+                "icon": "ℹ️", 
+                "border": "#2563eb"
+            }
+        }
+        
+        return configs.get(level, configs["INFO"])
+    
+    def _create_toast_window(self, message, config, toast_id):
+        """Cria a janela do toast com design moderno"""
+        # Cria janela toplevel
+        toast = Toplevel(self.root)
+        toast.withdraw()  # Esconde inicialmente para animação
+        toast.overrideredirect(True)  # Remove decorações da janela
+        toast.attributes('-topmost', True)  # Sempre no topo
+        
+        # Configurações da janela
+        toast.configure(bg=config['border'])
+        
+        # Frame principal com padding para simular borda
+        main_frame = Frame(toast, bg=config['bg'], padx=2, pady=2)
+        main_frame.pack(fill=BOTH, expand=True)
+        
+        # Container do conteúdo
+        content_frame = Frame(main_frame, bg=config['bg'])
+        content_frame.pack(fill=BOTH, expand=True, padx=16, pady=12)
+        
+        # Frame do ícone e texto
+        text_frame = Frame(content_frame, bg=config['bg'])
+        text_frame.pack(side=LEFT, fill=BOTH, expand=True)
+        
+        # Ícone
+        icon_label = Label(text_frame, 
+                          text=config['icon'],
+                          font=("Segoe UI Emoji", 14),
+                          bg=config['bg'],
+                          fg=config['fg'])
+        icon_label.pack(side=LEFT, padx=(0, 12))
+        
+        # Mensagem (trunca se muito longa)
+        display_message = message[:80] + "..." if len(message) > 80 else message
+        message_label = Label(text_frame,
+                             text=display_message,
+                             font=("Segoe UI", 10, "normal"),
+                             bg=config['bg'],
+                             fg=config['fg'],
+                             wraplength=300,
+                             justify=LEFT)
+        message_label.pack(side=LEFT, fill=BOTH, expand=True)
+        
+        # Botão fechar (X)
+        close_button = Label(content_frame,
+                            text="✕",
+                            font=("Segoe UI", 12, "bold"),
+                            bg=config['bg'],
+                            fg=config['fg'],
+                            cursor="hand2",
+                            padx=8)
+        close_button.pack(side=RIGHT)
+        close_button.bind("<Button-1>", lambda e: self.hide_toast(toast_id))
+        
+        # Efeito hover no botão fechar
+        def on_close_hover(event):
+            close_button.config(bg=self._darken_color(config['bg'], 0.2))
+        def on_close_leave(event):
+            close_button.config(bg=config['bg'])
+            
+        close_button.bind("<Enter>", on_close_hover)
+        close_button.bind("<Leave>", on_close_leave)
+        
+        # Click para fechar o toast inteiro
+        def close_toast(event):
+            self.hide_toast(toast_id)
+            
+        for widget in [toast, main_frame, content_frame, text_frame, message_label]:
+            widget.bind("<Button-1>", close_toast)
+        
+        # Armazena referências
+        toast.toast_id = toast_id
+        toast.config_data = config
+        
+        return toast
+    
+    def _position_toast(self, toast_window):
+        """Posiciona o toast na tela"""
+        # Atualiza para obter dimensões corretas
+        toast_window.update_idletasks()
+        
+        # Dimensões do toast
+        toast_width = toast_window.winfo_reqwidth()
+        toast_height = toast_window.winfo_reqheight()
+        
+        # Dimensões da tela
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        
+        # Margem da borda
+        margin = 20
+        
+        # Calcula posição baseada na configuração
+        if self.toast_position == "bottom_right":
+            x = screen_width - toast_width - margin
+            # Calcula Y considerando outros toasts
+            base_y = screen_height - toast_height - margin - 60  # 60 para taskbar
+            y_offset = len(self.toast_notifications) * (toast_height + 10)
+            y = base_y - y_offset
+        elif self.toast_position == "top_right":
+            x = screen_width - toast_width - margin
+            y_offset = len(self.toast_notifications) * (toast_height + 10)
+            y = margin + y_offset
+        elif self.toast_position == "bottom_left":
+            x = margin
+            base_y = screen_height - toast_height - margin - 60
+            y_offset = len(self.toast_notifications) * (toast_height + 10)
+            y = base_y - y_offset
+        else:  # top_left
+            x = margin
+            y_offset = len(self.toast_notifications) * (toast_height + 10)
+            y = margin + y_offset
+        
+        # Garante que não saia da tela
+        x = max(0, min(x, screen_width - toast_width))
+        y = max(0, min(y, screen_height - toast_height))
+        
+        toast_window.geometry(f"{toast_width}x{toast_height}+{x}+{y}")
+    
+    def _animate_toast_in(self, toast_window):
+        """Anima a entrada do toast"""
+        toast_window.deiconify()  # Mostra a janela
+        
+        # Animação de fade in e slide
+        toast_window.attributes('-alpha', 0.0)
+        
+        def fade_in(alpha=0.0):
+            if alpha < 1.0:
+                alpha += 0.1
+                toast_window.attributes('-alpha', alpha)
+                self.root.after(20, lambda: fade_in(alpha))
+        
+        fade_in()
+    
+    def _animate_toast_out(self, toast_window, callback=None):
+        """Anima a saída do toast"""
+        def fade_out(alpha=1.0):
+            if alpha > 0.0:
+                alpha -= 0.15
+                try:
+                    toast_window.attributes('-alpha', alpha)
+                    self.root.after(20, lambda: fade_out(alpha))
+                except:
+                    # Janela já foi destruída
+                    if callback:
+                        callback()
+            else:
+                if callback:
+                    callback()
+        
+        fade_out()
+    
+    def hide_toast(self, toast_id):
+        """Remove um toast específico"""
+        toast_data = None
+        for toast in self.toast_notifications:
+            if toast['id'] == toast_id:
+                toast_data = toast
+                break
+        
+        if not toast_data:
+            return
+        
+        # Remove da lista
+        self.toast_notifications.remove(toast_data)
+        
+        # Anima saída e destrói
+        def destroy_toast():
+            try:
+                toast_data['window'].destroy()
+            except:
+                pass  # Janela já foi destruída
+        
+        self._animate_toast_out(toast_data['window'], destroy_toast)
+        
+        # Reposiciona toasts restantes
+        self._reposition_toasts()
+    
+    def _reposition_toasts(self):
+        """Reposiciona todos os toasts após remoção"""
+        for i, toast_data in enumerate(self.toast_notifications):
+            toast_window = toast_data['window']
+            
+            # Recalcula posição
+            toast_window.update_idletasks()
+            toast_width = toast_window.winfo_width()
+            toast_height = toast_window.winfo_height()
+            
+            screen_width = self.root.winfo_screenwidth()
+            screen_height = self.root.winfo_screenheight()
+            margin = 20
+            
+            if self.toast_position == "bottom_right":
+                x = screen_width - toast_width - margin
+                base_y = screen_height - toast_height - margin - 60
+                y = base_y - (i * (toast_height + 10))
+            elif self.toast_position == "top_right":
+                x = screen_width - toast_width - margin
+                y = margin + (i * (toast_height + 10))
+            elif self.toast_position == "bottom_left":
+                x = margin
+                base_y = screen_height - toast_height - margin - 60
+                y = base_y - (i * (toast_height + 10))
+            else:  # top_left
+                x = margin
+                y = margin + (i * (toast_height + 10))
+            
+            # Anima movimento suave
+            current_x = toast_window.winfo_x()
+            current_y = toast_window.winfo_y()
+            
+            self._animate_move(toast_window, current_x, current_y, x, y)
+    
+    def _animate_move(self, window, start_x, start_y, end_x, end_y, steps=10):
+        """Anima movimento suave de uma janela"""
+        if steps <= 0:
+            try:
+                window.geometry(f"+{end_x}+{end_y}")
+            except:
+                pass
+            return
+        
+        # Calcula incremento
+        dx = (end_x - start_x) / steps
+        dy = (end_y - start_y) / steps
+        
+        new_x = int(start_x + dx)
+        new_y = int(start_y + dy)
+        
+        try:
+            window.geometry(f"+{new_x}+{new_y}")
+            self.root.after(20, lambda: self._animate_move(window, new_x, new_y, end_x, end_y, steps-1))
+        except:
+            pass  # Janela foi destruída
+    
+    def _darken_color(self, color, factor):
+        """Escurece uma cor hex por um fator"""
+        try:
+            # Remove # se presente
+            color = color.lstrip('#')
+            
+            # Converte para RGB
+            r = int(color[0:2], 16)
+            g = int(color[2:4], 16) 
+            b = int(color[4:6], 16)
+            
+            # Aplica fator de escurecimento
+            r = int(r * (1 - factor))
+            g = int(g * (1 - factor))
+            b = int(b * (1 - factor))
+            
+            # Converte de volta para hex
+            return f"#{r:02x}{g:02x}{b:02x}"
+        except:
+            return color  # Retorna cor original se houver erro
+    
+    def clear_all_toasts(self):
+        """Remove todos os toasts ativos"""
+        for toast_data in self.toast_notifications[:]:  # Cópia da lista
+            self.hide_toast(toast_data['id'])
+    
+    def toggle_toast_notifications(self):
+        """Liga/desliga as notificações toast"""
+        self.toast_enabled = not self.toast_enabled
+        if not self.toast_enabled:
+            self.clear_all_toasts()
+        
+        return self.toast_enabled
+    
+    def set_toast_position(self, position):
+        """Define a posição dos toasts"""
+        valid_positions = ["top_left", "top_right", "bottom_left", "bottom_right"]
+        if position in valid_positions:
+            self.toast_position = position
+            self._reposition_toasts()
+    
     def start_processing(self):
         """Inicia o processamento em thread separada"""
         if self.processing:
@@ -1412,6 +2224,9 @@ class OrganizadorExtratosGUI:
         self.processing_thread.daemon = True
         self.processing_thread.start()
         
+        # Notificação toast de início
+        self.show_toast_notification(f"🚀 Iniciando processamento de {len(files)} arquivos", "INFO")
+        
     def stop_processing(self):
         """Para o processamento"""
         self.processing = False
@@ -1420,6 +2235,8 @@ class OrganizadorExtratosGUI:
         self.stop_button.config(state=DISABLED)
         self.log_message("❌ Processamento interrompido pelo usuário", "WARNING")
         self.log_message("💾 Checkpoint salvo - use 'Retomar' para continuar", "INFO")
+        # Toast de interrupção
+        self.show_toast_notification("⏹️ Processamento interrompido! Checkpoint salvo para retomar depois.", "WARNING", duration=6000)
         self.status_label.config(text="Processamento interrompido - checkpoint salvo")
         
     def process_files(self, files, start_index=0):
@@ -1533,6 +2350,10 @@ class OrganizadorExtratosGUI:
                 self.progress_label.config(text="Processamento concluído!")
                 self.log_message("", "INFO")
                 self.log_message("🎉 Organização concluída com sucesso!", "SUCCESS")
+                # Toast de conclusão com estatísticas
+                self.show_toast_notification(
+                    f"🎉 Processamento concluído! {self.stats['success']} sucessos, {self.stats['errors']} erros", 
+                    "SUCCESS", duration=8000)
                 self.log_message("", "INFO")
                 self.log_message("🛡️ CONFIRMAÇÃO DE SEGURANÇA:", "SUCCESS")
                 self.log_message("   ✅ Todos os arquivos originais estão INTACTOS", "SUCCESS")
@@ -1544,6 +2365,8 @@ class OrganizadorExtratosGUI:
                 
         except Exception as e:
             self.log_message(f"❌ Erro crítico: {str(e)}", "ERROR")
+            # Toast de erro crítico
+            self.show_toast_notification(f"❌ Erro crítico no processamento! Checkpoint salvo.", "ERROR", duration=10000)
             # Salva checkpoint em caso de erro crítico
             try:
                 current_index = locals().get('i', start_index)
