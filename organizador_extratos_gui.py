@@ -359,9 +359,9 @@ class OrganizadorExtratosGUI:
         self.root = root
         self.setup_window()
         self.setup_variables()
+        self.load_preferences()  # Carrega antes da UI para ter as configurações
+        self.apply_theme()  # Aplica tema antes da UI para ter as cores disponíveis
         self.setup_ui()
-        self.load_preferences()  # Carrega depois da UI ser criada
-        self.apply_theme()
         
         # Inicializa sistema de notificações toast
         self.toast = ToastNotification(self.root)
@@ -1532,30 +1532,6 @@ class OrganizadorExtratosGUI:
         self.apply_theme()
         self.save_preferences()
         
-    def apply_theme(self):
-        """Aplica o tema atual a todos os componentes"""
-        if not hasattr(self, 'notebook'):
-            return
-            
-        # Atualiza cores do tema
-        theme = self.themes[self.current_theme]
-        
-        # Atualiza o botão de tema
-        if hasattr(self, 'theme_button'):
-            theme_icon = "🌙" if self.current_theme == "light" else "☀️"
-            theme_text = "Escuro" if self.current_theme == "light" else "Claro"
-            self.theme_button.config(text=f"{theme_icon} {theme_text}",
-                                   bg=self.colors['secondary'])
-        
-        # Atualiza componentes principais
-        self.root.configure(bg=theme.get('bg', '#ffffff'))
-        
-        # Reconfigura estilo moderno
-        self.configure_modern_style()
-        
-        # Força atualização visual
-        self.root.update_idletasks()
-        
     def check_dependencies(self):
         """Verifica se as dependências estão instaladas"""
         missing = []
@@ -1677,12 +1653,18 @@ class OrganizadorExtratosGUI:
             if model_worked:
                 messagebox.showinfo("Sucesso", f"✅ Chave {index + 1} funcionando!\nModelo: {model_name}")
                 self.api_status_label.config(text=f"Chave {index + 1}: ✅ OK")
+                # Toast de sucesso no teste
+                self.show_toast_notification(f"✅ Chave API {index + 1} testada com sucesso! Modelo: {model_name}", "SUCCESS")
             else:
                 messagebox.showerror("Erro", f"Chave {index + 1}: Modelos indisponíveis")
                 self.api_status_label.config(text=f"Chave {index + 1}: ❌ Erro")
+                # Toast de erro no teste
+                self.show_toast_notification(f"❌ Chave API {index + 1}: Modelos indisponíveis", "ERROR")
         except Exception as e:
             messagebox.showerror("Erro de API", f"Chave {index + 1} falhou:\n{str(e)}")
             self.api_status_label.config(text=f"Chave {index + 1}: ❌ Falhou")
+            # Toast de falha no teste
+            self.show_toast_notification(f"❌ Chave API {index + 1} falhou no teste", "ERROR")
             
     def test_all_apis(self):
         """Testa todas as chaves API"""
@@ -1726,10 +1708,14 @@ class OrganizadorExtratosGUI:
         
         if working_keys > 0:
             messagebox.showinfo("Resultado dos Testes", result_msg)
+            # Toast de sucesso no teste de todas as chaves
+            self.show_toast_notification(f"✅ Teste concluído: {working_keys} chaves funcionando de {len(self.api_keys)}", "SUCCESS")
         else:
             messagebox.showerror("Erro", result_msg + "\n\n⚠️ Nenhuma chave está funcionando!")
+            # Toast de erro no teste de todas as chaves
+            self.show_toast_notification(f"❌ Nenhuma chave API está funcionando! Verifique suas configurações.", "ERROR", duration=8000)
             
-        self.api_status_label.config(text=f"{working_keys}/{len(self.api_keys)} OK")
+        self.api_status_label.config(text=f"{working_keys}/{len(self.api_keys)} chaves funcionando")
             
     def select_input_directory(self):
         """Seleciona o diretório de entrada"""
@@ -1764,6 +1750,12 @@ class OrganizadorExtratosGUI:
         count = len(files_found)
         self.files_count_label.config(text=f"{count} arquivos encontrados")
         self.status_label.config(text=f"Escaneamento concluído: {count} arquivos")
+        
+        # Toast informativo sobre arquivos encontrados
+        if count > 0:
+            self.show_toast_notification(f"🔍 Encontrados {count} arquivos para processar", "INFO", duration=4000)
+        else:
+            self.show_toast_notification("⚠️ Nenhum arquivo encontrado na pasta selecionada", "WARNING", duration=5000)
         
         return files_found
         
@@ -3025,17 +3017,6 @@ class OrganizadorExtratosGUI:
         if hasattr(self, 'theme_button'):
             self.theme_button.config(text=f"{theme_icon} {theme_text}")
         
-    def update_colors(self):
-        """Atualiza as cores baseadas no tema atual"""
-        theme = self.themes[self.current_theme]
-        self.colors = {
-            'primary': theme.get('accent', theme['select_bg']),
-            'secondary': theme.get('secondary', theme['button_bg']), 
-            'success': theme.get('success_fg', '#28a745'),
-            'background': theme['bg'],
-            'text': theme['fg']
-        }
-    
     def apply_theme(self):
         """Aplica o tema atual a todos os componentes"""
         if not hasattr(self, 'root'):
