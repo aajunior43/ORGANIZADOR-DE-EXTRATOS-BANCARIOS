@@ -1,6 +1,0 @@
-
-# Para adicionar um ícone personalizado:
-# 1. Crie ou baixe um arquivo .ico (32x32 ou 64x64 pixels)
-# 2. Renomeie para 'icon.ico'
-# 3. Coloque na pasta do projeto
-# 4. Execute novamente o build
